@@ -14,22 +14,36 @@ WITH team_percentiles AS (
     FROM
         data
 ),
-total_results as (
-  SELECT
-      team_number,
-      team_name,
-      total_points,
-      percentile_total_points || '%' AS percentile_total_points,
-      auto_points,
-      percentile_auto_points || '%' AS percentile_auto_points,
-      teleop_points,
-      percentile_teleop_points || '%' AS percentile_teleop_points,
-      endgame_points,
-      percentile_endgame_points || '%' AS percentile_endgame_points
-  FROM
-      team_percentiles
+formatted_results AS (
+    SELECT
+        team_number,
+        team_name,
+        total_points,
+        percentile_total_points || '%' AS percentile_total_points,
+        auto_points,
+        percentile_auto_points || '%' AS percentile_auto_points,
+        teleop_points,
+        percentile_teleop_points || '%' AS percentile_teleop_points,
+        endgame_points,
+        percentile_endgame_points || '%' AS percentile_endgame_points,
+        RANK() OVER (ORDER BY total_points DESC) AS rank_by_total
+    FROM
+        team_percentiles
 )
-(SELECT * FROM total_results WHERE team_number = 4087
-AND team_number NOT IN (SELECT team_number FROM total_results ORDER BY total_points DESC LIMIT 10))
-UNION ALL
-(SELECT * FROM total_results ORDER BY total_points DESC LIMIT 10);
+SELECT
+  formatted_results.rank_by_total as "rank",
+  team_number,
+  team_name,
+  total_points,
+  percentile_total_points,
+  auto_points,
+  percentile_auto_points,
+  teleop_points,
+  percentile_teleop_points,
+  endgame_points,
+  percentile_endgame_points
+FROM formatted_results
+WHERE team_number = '4087' OR rank_by_total <= 10
+ORDER BY
+    CASE WHEN team_number = '4087' THEN 1 ELSE 0 END,
+    rank_by_total;
